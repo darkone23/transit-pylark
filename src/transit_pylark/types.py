@@ -5,12 +5,14 @@ from immutabledict import immutabledict
 
 import arrow
 
+
 class frozendict(immutabledict):
 
     def __repr__(self):
         frozenstr = super().__repr__()
         xs_part = frozenstr[11:]
         return f"frozendict({xs_part}"
+
 
 class instant(arrow.Arrow):
 
@@ -24,20 +26,17 @@ class instant(arrow.Arrow):
             minute=a.minute,
             second=a.second,
             microsecond=a.microsecond,
-            tzinfo=a.tzinfo
+            tzinfo=a.tzinfo,
         )
 
     @staticmethod
     def from_isostr(str):
-        return instant.from_arrow(
-            arrow.get(str)
-        )
+        return instant.from_arrow(arrow.get(str))
 
     @staticmethod
     def from_unixtime(epoch):
-        return instant.from_arrow(
-            arrow.get(epoch)
-        )
+        return instant.from_arrow(arrow.get(epoch))
+
 
 class frozenlist(FrozenList):
 
@@ -49,6 +48,7 @@ class frozenlist(FrozenList):
         frozenstr = super().__repr__()
         xs_part = frozenstr[25:-2]
         return f"frozenlist({xs_part})"
+
 
 @dataclass(frozen=True)
 class transit_tag:
@@ -100,4 +100,3 @@ class quoted:
 
     def __str__(self):
         return f"'{self.v}"
-

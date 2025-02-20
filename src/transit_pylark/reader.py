@@ -8,15 +8,7 @@ from lark import Lark, Transformer, Discard, Tree
 import time
 
 from .cache import TransitCacheControl
-from .types import (
-    frozendict,
-    frozenlist,
-    instant,
-    transit_tag,
-    mapkey,
-    keyword,
-    quoted
-)
+from .types import frozendict, frozenlist, instant, transit_tag, mapkey, keyword, quoted
 from .codecs import TransitTagResolver, TransitDecoder
 
 # basic json grammar needs to be extended to handle transit tagging and caching
@@ -31,6 +23,7 @@ instruction: nil
          | microtime
          | isotime
          | bool
+         | int
          | base64
          | keyword
          | symbol
@@ -43,6 +36,7 @@ bool: "?"
 base64: "b"
 microtime: "m"
 isotime: "t"
+int: "i" | "n"
 keyword: ":"
 symbol: "$"
 tag: "#"
@@ -73,6 +67,7 @@ transit_num : SIGNED_NUMBER
 %import common.WS
 %ignore WS
 """
+
 
 class TransitScalarTransformer(Transformer):
 
@@ -117,6 +112,7 @@ class TransitScalarTransformer(Transformer):
     #     (s,) = s
     #     return s
 
+
 # transformer can be responsible for cache reading layer
 class TransitJsonTransformer(Transformer):
 
@@ -132,7 +128,9 @@ class TransitJsonTransformer(Transformer):
             TRANSIT_STRING_GRAMMAR,
             start="value",
             parser="lalr",
-            transformer=TransitScalarTransformer(resolver=resolver, control=self.control),
+            transformer=TransitScalarTransformer(
+                resolver=resolver, control=self.control
+            ),
         )
         self.__cache = {}
 
@@ -183,7 +181,6 @@ class TransitJsonTransformer(Transformer):
         # TODO: symbols, tags
 
         return res
-
 
     def transit_num(self, args):
         (n,) = args
@@ -309,10 +306,11 @@ class TransitJsonTransformer(Transformer):
             result = transit_part
         return result
 
+
 class TransitReader:
 
     def __init__(self):
-        
+
         # from rich.pretty import pprint
         self.xformer = TransitJsonTransformer()
         self.parser: Lark = Lark(
@@ -321,7 +319,6 @@ class TransitReader:
             parser="lalr",
             transformer=self.xformer,
         )
-
 
     def read(self, obj, enable_cache: bool = True, unquote_top: bool = True):
         # TODO: wouldn't hurt to add a threading lock here

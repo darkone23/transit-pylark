@@ -1,4 +1,3 @@
-
 from pathlib import Path
 from rich.pretty import pprint
 import json
@@ -59,7 +58,7 @@ class TransitTestSuite(unittest.TestCase):
         # with self.assertRaises(TypeError):
         #     s.split(2)
 
-        verbose_files = [ "./tests/test_data/example.verbose.json" ]
+        verbose_files = ["./tests/test_data/example.verbose.json"]
 
         reader = TransitReader()
 
@@ -81,8 +80,12 @@ class TransitTestSuite(unittest.TestCase):
             )
 
             results = [
-                TransitExampleRunner(reader, transit_cache_example).run_parse(cache=True),
-                TransitExampleRunner(reader, transit_verbose_example).run_parse(cache=False),
+                TransitExampleRunner(reader, transit_cache_example).run_parse(
+                    cache=True
+                ),
+                TransitExampleRunner(reader, transit_verbose_example).run_parse(
+                    cache=False
+                ),
             ]
 
             tree_0 = results[0]["tree"]
@@ -95,6 +98,8 @@ class TransitTestSuite(unittest.TestCase):
 
             self.assertEqual(tree_0, tree_1)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import nose2
+
     nose2.main()

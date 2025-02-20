@@ -10,49 +10,82 @@ from transit_pylark.types import (
     instant,
     mapkey,
     keyword,
-    quoted
+    quoted,
 )
 
 from nose2.tools import params
 
 from dataclasses import dataclass
 
+import sys
+sys.path.append(Path(__file__).parent)
+
+from transit_test_helpers import (
+    mapcat,
+    ints_centered_on,
+    powers_of_two,
+)
+
+
 @dataclass
 class ExemplarSpec:
     name: str
     expected: any
 
-cmap_null_key = frozendict({
-    None: "null as map key",
-    frozenlist([1, 2]): "Array as key to force cmap"       
-})
 
-cmap_pathological = frozenlist([
-    frozendict({
-        keyword(v='any-value'): frozendict({
-            frozenlist(['this vector makes this a cmap']): 'any value',
-            'any string': keyword(v='victim')
-        })
-    }),
-    frozendict({keyword(v='victim'): keyword(v='any-other-value')})
-])
+cmap_null_key = frozendict(
+    {None: "null as map key", frozenlist([1, 2]): "Array as key to force cmap"}
+)
 
-dates_interesting = frozenlist([
-    instant.from_isostr("1776-07-04T12:00:00.000-00:00"),
-    instant.from_unixtime(0),
-    instant.from_isostr("2000-01-01T12:00:00.000-00:00"),
-    instant.from_unixtime(1396909037000 / 1000),
-])
+cmap_pathological = frozenlist(
+    [
+        frozendict(
+            {
+                keyword(v="any-value"): frozendict(
+                    {
+                        frozenlist(["this vector makes this a cmap"]): "any value",
+                        "any string": keyword(v="victim"),
+                    }
+                )
+            }
+        ),
+        frozendict({keyword(v="victim"): keyword(v="any-other-value")}),
+    ]
+)
 
-doubles_interesting = frozenlist([-3.14159, 3.14159, 4.0E11, 2.998E8, 6.626E-34])
+dates_interesting = frozenlist(
+    [
+        instant.from_isostr("1776-07-04T12:00:00.000-00:00"),
+        instant.from_unixtime(0),
+        instant.from_isostr("2000-01-01T12:00:00.000-00:00"),
+        instant.from_unixtime(1396909037000 / 1000),
+    ]
+)
 
-doubles_small = [-5.0, -4.0, -3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+doubles_interesting = frozenlist([-3.14159, 3.14159, 4.0e11, 2.998e8, 6.626e-34])
+
+doubles_small = frozenlist(map(float, ints_centered_on(0)))
 
 false = False
+
 ints = frozenlist(range(128))
-ints_interesting = None
-ints_interesting_neg = None
-keywords = None
+
+ints_interesting = frozenlist(mapcat(lambda x: ints_centered_on(x, 2), powers_of_two))
+
+ints_interesting_neg = frozenlist(map(lambda x: -x, ints_interesting))
+
+keywords = [
+    keyword("a"),
+    keyword("ab"),
+    keyword("abc"),
+    keyword("abcd"),
+    keyword("abcde"),
+    keyword("a1"),
+    keyword("b2"),
+    keyword("c3"),
+    keyword("a_b")
+]
+
 list_empty = None
 list_mixed = None
 list_nested = None
@@ -119,9 +152,9 @@ exemplar_files = [
     ExemplarSpec("doubles_small", doubles_small),
     ExemplarSpec("false", false),
     ExemplarSpec("ints", ints),
-    # ExemplarSpec("ints_interesting", ints_interesting),
-    # ExemplarSpec("ints_interesting_neg", ints_interesting_neg),
-    # ExemplarSpec("keywords", keywords),
+    ExemplarSpec("ints_interesting", ints_interesting),
+    ExemplarSpec("ints_interesting_neg", ints_interesting_neg),
+    ExemplarSpec("keywords", keywords),
     # ExemplarSpec("list_empty", list_empty),
     # ExemplarSpec("list_mixed", list_mixed),
     # ExemplarSpec("list_nested", list_nested),
@@ -183,23 +216,21 @@ exemplar_files = [
 
 reader = TransitReader()
 
+
 @params(*exemplar_files)
 def test_exemplar(spec: ExemplarSpec):
     verbose_file = f"./tests/test_data/simple/{spec.name}.verbose.json"
     verbose_txt = Path(verbose_file).read_text()
     verbose_tree = reader.read(verbose_txt)
     # pprint(verbose_tree)
-    assert verbose_tree == spec.expected, f"verbose: {verbose_tree} did not match {spec.expected}"
+    assert (
+        verbose_tree == spec.expected
+    ), f"verbose: {verbose_tree} did not match {spec.expected}"
 
     cache_file = verbose_file.replace(".verbose.json", ".json")
     cache_txt = Path(cache_file).read_text()
     cache_tree = reader.read(cache_txt)
     # pprint(cache_tree)
-    assert cache_tree == spec.expected, f"cache: {cache_tree} did not match {spec.expected}"
-
-
-
-
-
-
-
+    assert (
+        cache_tree == spec.expected
+    ), f"cache: {cache_tree} did not match {spec.expected}"

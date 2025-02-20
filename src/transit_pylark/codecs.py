@@ -1,24 +1,23 @@
-
-from .types import (
-    keyword,
-    transit_tag,
-    quoted,
-    instant,
-    frozenlist,
-    frozendict
-)
+from .types import keyword, transit_tag, quoted, instant, frozenlist, frozendict
 
 import lark
+
 
 class TransitDecoder:
 
     def decode(self, encoded: str):
         pass
 
+
 class KeywordDecoder(TransitDecoder):
 
     def decode(self, encoded: str):
         return keyword(encoded)
+
+class IntDecoder(TransitDecoder):
+
+    def decode(self, encoded: str):
+        return int(encoded)
 
 
 class MicroTimeDecoder(TransitDecoder):
@@ -38,21 +37,25 @@ class TagDecoder(TransitDecoder):
     def decode(self, encoded: str):
         return transit_tag(encoded)
 
+
 class QuoteTagDecoder(TransitDecoder):
 
     def decode(self, encoded: str):
         return quoted(encoded)
 
+
 class CompositeMapDecoder(TransitDecoder):
 
     def decode(self, encoded: list):
-        assert type(encoded) is frozenlist, f"Expecting a list value for composite maps: {encoded}"
+        assert (
+            type(encoded) is frozenlist
+        ), f"Expecting a list value for composite maps: {encoded}"
         res = {}
         # print("cmap hydrate time", encoded)
         # print("look at this cmap data:", encoded)
         for n in range(int(len(encoded) / 2)):
             idx = n * 2
-            (k, v) = encoded[idx:idx+2]
+            (k, v) = encoded[idx : idx + 2]
             res[k] = v
         return frozendict(res)
         # return quoted(encoded)
@@ -85,8 +88,7 @@ class TransitTagResolver:
         resolver.add_decoder("tag", TagDecoder())
         resolver.add_decoder("microtime", MicroTimeDecoder())
         resolver.add_decoder("isotime", IsoTimeDecoder())
+        resolver.add_decoder("int", IntDecoder())
         resolver.add_decoder("tag:'", QuoteTagDecoder())
         resolver.add_decoder("tag:cmap", CompositeMapDecoder())
         return resolver
-
-

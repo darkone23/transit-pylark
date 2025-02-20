@@ -1,4 +1,3 @@
-
 class TransitCacheControl:
     """
     private static final int CACHE_CODE_DIGITS = 44;
@@ -56,7 +55,9 @@ class TransitCacheControl:
         if self.cache_enabled:
             if self.cursor > TransitCacheControl.MAX_CACHE_SIZE:
                 self.reset()
-                print("Resetting the cache due to overflow: you probably want to disable the cache.")
+                print(
+                    "Resetting the cache due to overflow: you probably want to disable the cache."
+                )
             # print("thanks for adding", self.cursor, len(self.cache), item)
             self.cache[item] = self.cursor
             self.cursor += 1
@@ -86,4 +87,3 @@ class TransitCacheControl:
             return ((ord(s[1]) - BASE_CHAR_INDEX) * CACHE_CODE_DIGITS) + (
                 ord(s[2]) - BASE_CHAR_INDEX
             )
-
