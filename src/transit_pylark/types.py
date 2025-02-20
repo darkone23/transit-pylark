@@ -3,12 +3,41 @@ from dataclasses import dataclass
 from frozenlist import FrozenList
 from immutabledict import immutabledict
 
+import arrow
+
 class frozendict(immutabledict):
 
     def __repr__(self):
         frozenstr = super().__repr__()
         xs_part = frozenstr[11:]
         return f"frozendict({xs_part}"
+
+class instant(arrow.Arrow):
+
+    @staticmethod
+    def from_arrow(a: arrow.Arrow):
+        return instant(
+            year=a.year,
+            month=a.month,
+            day=a.day,
+            hour=a.hour,
+            minute=a.minute,
+            second=a.second,
+            microsecond=a.microsecond,
+            tzinfo=a.tzinfo
+        )
+
+    @staticmethod
+    def from_isostr(str):
+        return instant.from_arrow(
+            arrow.get(str)
+        )
+
+    @staticmethod
+    def from_unixtime(epoch):
+        return instant.from_arrow(
+            arrow.get(epoch)
+        )
 
 class frozenlist(FrozenList):
 

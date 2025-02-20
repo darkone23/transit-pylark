@@ -11,6 +11,7 @@ from .cache import TransitCacheControl
 from .types import (
     frozendict,
     frozenlist,
+    instant,
     transit_tag,
     mapkey,
     keyword,
@@ -27,6 +28,8 @@ value: "~" instruction [ chars ]
 instruction: nil
          | escape_tilde
          | escape_hat
+         | microtime
+         | isotime
          | bool
          | base64
          | keyword
@@ -38,6 +41,8 @@ escape_tilde: "~"
 escape_hat: "^"
 bool: "?"
 base64: "b"
+microtime: "m"
+isotime: "t"
 keyword: ":"
 symbol: "$"
 tag: "#"
@@ -134,7 +139,7 @@ class TransitJsonTransformer(Transformer):
     def value(self, args):
         (s,) = args
         # print("value inspect:", s)
-        if self.control.enforce:
+        if self.control.cache_enabled:
             cache_analysis = self.__cache_analysis(s)
             # print("do I think this is cacheable?", cache_analysis)
             if cache_analysis.get("should_cache", False):
@@ -256,7 +261,7 @@ class TransitJsonTransformer(Transformer):
         # # code = TransitCacheControl.index_to_code(next)
         # # round = TransitCacheControl.code_to_index(code)
         # print("Adding to cache", res, self.control.control_stack)
-        if self.control.enforce:
+        if self.control.cache_enabled:
             offset = self.control.ack_cache_control(key)
             self.__cache[offset] = res
 
@@ -293,7 +298,7 @@ class TransitJsonTransformer(Transformer):
             #     print("Exception parsing transit encoded str node!", e)
             #     # print(e)
             #     result = transit_part
-        elif self.control.enforce and transit_part.startswith("^"):
+        elif self.control.cache_enabled and transit_part.startswith("^"):
             # special cache instruction
             remainder = transit_part[1:]
             if remainder == " ":
@@ -321,7 +326,7 @@ class TransitReader:
     def read(self, obj, enable_cache: bool = True):
         # TODO: wouldn't hurt to add a threading lock here
         try:
-            self.xformer.control.set_enforce(enable_cache)
+            self.xformer.control.set_cache_enabled(enable_cache)
             return self.parser.parse(obj)
         finally:
             self.xformer.control.reset()

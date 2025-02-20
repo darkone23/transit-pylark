@@ -3,6 +3,7 @@ from .types import (
     keyword,
     transit_tag,
     quoted,
+    instant,
     frozenlist,
     frozendict
 )
@@ -18,6 +19,18 @@ class KeywordDecoder(TransitDecoder):
 
     def decode(self, encoded: str):
         return keyword(encoded)
+
+
+class MicroTimeDecoder(TransitDecoder):
+
+    def decode(self, encoded: str):
+        return instant.from_unixtime(int(encoded) / 1000)
+
+
+class IsoTimeDecoder(TransitDecoder):
+
+    def decode(self, encoded: str):
+        return instant.from_isostr(encoded)
 
 
 class TagDecoder(TransitDecoder):
@@ -70,6 +83,8 @@ class TransitTagResolver:
         # these names matching the lark grammar names
         resolver.add_decoder("keyword", KeywordDecoder())
         resolver.add_decoder("tag", TagDecoder())
+        resolver.add_decoder("microtime", MicroTimeDecoder())
+        resolver.add_decoder("isotime", IsoTimeDecoder())
         resolver.add_decoder("tag:'", QuoteTagDecoder())
         resolver.add_decoder("tag:cmap", CompositeMapDecoder())
         return resolver

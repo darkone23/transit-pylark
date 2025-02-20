@@ -33,11 +33,11 @@ class TransitCacheControl:
 
     def __init__(self):
         self.reset()
-        self.enforce = True
+        self.cache_enabled = True
 
-    def set_enforce(self, enforce: bool):
+    def set_cache_enabled(self, enable: bool):
         # print("Setting cache enforce to:", enforce)
-        self.enforce = enforce
+        self.cache_enabled = enable
 
     def reset(self):
         # print("Initializing fresh cache stack")
@@ -46,14 +46,14 @@ class TransitCacheControl:
 
     def ack_cache_control(self, item: list):
         # print("thanks for popping", self.cursor, len(self.cache), item)
-        if self.enforce:
+        if self.cache_enabled:
             cursor = self.cache[item]
             del self.cache[item]
             return cursor
 
     def syn_cache_control(self, item):
         """We need to grab our ID as soon as we see the cacheable token - not AFTER parsing the token!"""
-        if self.enforce:
+        if self.cache_enabled:
             if self.cursor > TransitCacheControl.MAX_CACHE_SIZE:
                 self.reset()
                 print("Resetting the cache due to overflow: you probably want to disable the cache.")

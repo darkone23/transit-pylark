@@ -1,11 +1,13 @@
 from pathlib import Path
 from rich.pretty import pprint
 import time
+import arrow
 from transit_pylark.reader import TransitReader
 from transit_pylark.types import (
     frozendict,
     frozenlist,
     transit_tag,
+    instant,
     mapkey,
     keyword,
     quoted
@@ -35,9 +37,17 @@ cmap_pathological = frozenlist([
     frozendict({keyword(v='victim'): keyword(v='any-other-value')})
 ])
 
-dates_interesting = None
+dates_interesting = frozenlist([
+    instant.from_isostr("1776-07-04T12:00:00.000-00:00"),
+    instant.from_unixtime(0),
+    instant.from_isostr("2000-01-01T12:00:00.000-00:00"),
+    instant.from_unixtime(1396909037000 / 1000),
+])
+
 doubles_interesting = frozenlist([-3.14159, 3.14159, 4.0E11, 2.998E8, 6.626E-34])
+
 doubles_small = [-5.0, -4.0, -3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
+
 false = None
 ints = None
 ints_interesting = None
@@ -104,7 +114,7 @@ zero = None
 exemplar_files = [
     ExemplarSpec("cmap_null_key", cmap_null_key),
     ExemplarSpec("cmap_pathological", cmap_pathological),
-    # ExemplarSpec("dates_interesting", dates_interesting),
+    ExemplarSpec("dates_interesting", dates_interesting),
     ExemplarSpec("doubles_interesting", doubles_interesting),
     ExemplarSpec("doubles_small", doubles_small),
     # ExemplarSpec("false", false),
