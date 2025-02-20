@@ -323,10 +323,14 @@ class TransitReader:
         )
 
 
-    def read(self, obj, enable_cache: bool = True):
+    def read(self, obj, enable_cache: bool = True, unquote_top: bool = True):
         # TODO: wouldn't hurt to add a threading lock here
         try:
             self.xformer.control.set_cache_enabled(enable_cache)
-            return self.parser.parse(obj)
+            parsed = self.parser.parse(obj)
+            if unquote_top and type(parsed) is quoted:
+                return parsed.v
+            else:
+                return parsed
         finally:
             self.xformer.control.reset()

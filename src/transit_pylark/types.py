@@ -99,5 +99,5 @@ class quoted:
         return len(self.v)
 
     def __str__(self):
-        return f"{self.v}"
+        return f"'{self.v}"
 

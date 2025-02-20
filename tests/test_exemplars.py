@@ -48,8 +48,8 @@ doubles_interesting = frozenlist([-3.14159, 3.14159, 4.0E11, 2.998E8, 6.626E-34]
 
 doubles_small = [-5.0, -4.0, -3.0, -2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
 
-false = None
-ints = None
+false = False
+ints = frozenlist(range(128))
 ints_interesting = None
 ints_interesting_neg = None
 keywords = None
@@ -80,10 +80,10 @@ maps_two_char_string_keys = None
 maps_two_char_sym_keys = None
 maps_unrecognized_keys = None
 nil = None
-one = None
-one_date = None
-one_keyword = None
-one_string = None
+one = 1
+one_date = instant.from_isostr("2000-01-01T12:00:00+00:00")
+one_keyword = keyword(v="hello")
+one_string = "hello"
 one_symbol = None
 one_uri = None
 one_uuid = None
@@ -97,7 +97,7 @@ strings_hash = None
 strings_hat = None
 strings_tilde = None
 symbols = None
-true = None
+true = True
 uris = None
 uuids = None
 vector_1935_keywords_repeated_twice = None
@@ -109,7 +109,7 @@ vector_nested = None
 vector_simple = None
 vector_special_numbers = None
 vector_unrecognized_vals = None
-zero = None
+zero = 0
 
 exemplar_files = [
     ExemplarSpec("cmap_null_key", cmap_null_key),
@@ -117,8 +117,8 @@ exemplar_files = [
     ExemplarSpec("dates_interesting", dates_interesting),
     ExemplarSpec("doubles_interesting", doubles_interesting),
     ExemplarSpec("doubles_small", doubles_small),
-    # ExemplarSpec("false", false),
-    # ExemplarSpec("ints", ints),
+    ExemplarSpec("false", false),
+    ExemplarSpec("ints", ints),
     # ExemplarSpec("ints_interesting", ints_interesting),
     # ExemplarSpec("ints_interesting_neg", ints_interesting_neg),
     # ExemplarSpec("keywords", keywords),
@@ -148,11 +148,11 @@ exemplar_files = [
     # ExemplarSpec("maps_two_char_string_keys", maps_two_char_string_keys),
     # ExemplarSpec("maps_two_char_sym_keys", maps_two_char_sym_keys),
     # ExemplarSpec("maps_unrecognized_keys", maps_unrecognized_keys),
-    # ExemplarSpec("nil", nil),
-    # ExemplarSpec("one", one),
-    # ExemplarSpec("one_date", one_date),
-    # ExemplarSpec("one_keyword", one_keyword),
-    # ExemplarSpec("one_string", one_string),
+    ExemplarSpec("nil", nil),
+    ExemplarSpec("one", one),
+    ExemplarSpec("one_date", one_date),
+    ExemplarSpec("one_keyword", one_keyword),
+    ExemplarSpec("one_string", one_string),
     # ExemplarSpec("one_symbol", one_symbol),
     # ExemplarSpec("one_uri", one_uri),
     # ExemplarSpec("one_uuid", one_uuid),
@@ -166,7 +166,7 @@ exemplar_files = [
     # ExemplarSpec("strings_hat", strings_hat),
     # ExemplarSpec("strings_tilde", strings_tilde),
     # ExemplarSpec("symbols", symbols),
-    # ExemplarSpec("true", true),
+    ExemplarSpec("true", true),
     # ExemplarSpec("uris", uris),
     # ExemplarSpec("uuids", uuids),
     # ExemplarSpec("vector_1935_keywords_repeated_twice", vector_1935_keywords_repeated_twice),
@@ -178,7 +178,7 @@ exemplar_files = [
     # ExemplarSpec("vector_simple", vector_simple),
     # ExemplarSpec("vector_special_numbers", vector_special_numbers),
     # ExemplarSpec("vector_unrecognized_vals", vector_unrecognized_vals),
-    # ExemplarSpec("zero", zero),
+    ExemplarSpec("zero", zero),
 ]
 
 reader = TransitReader()
@@ -188,11 +188,13 @@ def test_exemplar(spec: ExemplarSpec):
     verbose_file = f"./tests/test_data/simple/{spec.name}.verbose.json"
     verbose_txt = Path(verbose_file).read_text()
     verbose_tree = reader.read(verbose_txt)
+    # pprint(verbose_tree)
     assert verbose_tree == spec.expected, f"verbose: {verbose_tree} did not match {spec.expected}"
 
     cache_file = verbose_file.replace(".verbose.json", ".json")
     cache_txt = Path(cache_file).read_text()
     cache_tree = reader.read(cache_txt)
+    # pprint(cache_tree)
     assert cache_tree == spec.expected, f"cache: {cache_tree} did not match {spec.expected}"
 
 
