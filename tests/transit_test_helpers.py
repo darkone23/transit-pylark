@@ -34,4 +34,8 @@ def hash_of_size(n):
     return frozendict(zip(array_of_symbols(n), range(0, n + 1)))
 
 
+def make_hash_exemplar(n):
+    return frozendict({keyword("f"): hash_of_size(n), keyword("s"): hash_of_size(n)})
+
+
 powers_of_two = frozenlist(map(lambda x: pow(2, x), range(66)))

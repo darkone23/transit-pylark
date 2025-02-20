@@ -2,7 +2,7 @@ import time
 
 from dataclasses import dataclass
 
-from .types import CacheHandle
+from .types import CacheHandle, keyword, symbol, mapkey, transit_tag
 
 
 class TransitCacheControl:
@@ -49,6 +49,27 @@ class TransitCacheControl:
     def syn_cache_control(self, item):
         """We need to grab our ID as soon as we see the cacheable token - not AFTER parsing the token!"""
         if self.cache_enabled:
+            # if: I DONT THINK I SHOULD CACHE THIS
+            # then quick return!
+            interesting_type = False
+
+            item_type = type(item)
+
+            if item_type is keyword or item_type is symbol:
+                interesting_type = True
+
+            if item_type is transit_tag:
+                interesting_type = True
+
+            if item_type is mapkey:
+                interesting_type = True
+
+            if not interesting_type:
+                return item
+
+            if len(item) == 1:
+                return item
+
             if self.cursor > TransitCacheControl.MAX_CACHE_SIZE:
                 self.reset()
             # print("thanks for adding", self.cursor, len(self.cache), item)

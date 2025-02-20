@@ -26,6 +26,8 @@ from transit_test_helpers import (
     mapcat,
     ints_centered_on,
     powers_of_two,
+    hash_of_size,
+    make_hash_exemplar,
 )
 
 
@@ -95,8 +97,8 @@ list_mixed = frozenlist(
 list_simple = frozenlist([1, 2, 3])
 list_nested = frozenlist([list_simple, list_mixed])
 
-map_10_items = None
-map_10_nested = None
+map_10_items = hash_of_size(10)
+map_10_nested = make_hash_exemplar(10)
 map_1935_nested = None
 map_1936_nested = None
 map_1937_nested = None
@@ -164,8 +166,8 @@ exemplar_files = [
     ExemplarSpec("list_mixed", list_mixed),
     ExemplarSpec("list_nested", list_nested),
     ExemplarSpec("list_simple", list_simple),
-    # ExemplarSpec("map_10_items", map_10_items),
-    # ExemplarSpec("map_10_nested", map_10_nested),
+    ExemplarSpec("map_10_items", map_10_items),
+    ExemplarSpec("map_10_nested", map_10_nested),
     # ExemplarSpec("map_1935_nested", map_1935_nested),
     # ExemplarSpec("map_1936_nested", map_1936_nested),
     # ExemplarSpec("map_1937_nested", map_1937_nested),
