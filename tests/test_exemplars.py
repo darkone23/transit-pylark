@@ -9,6 +9,7 @@ from transit_pylark.types import (
     transit_tag,
     instant,
     mapkey,
+    symbol,
     keyword,
     quoted,
 )
@@ -18,6 +19,7 @@ from nose2.tools import params
 from dataclasses import dataclass
 
 import sys
+
 sys.path.append(Path(__file__).parent)
 
 from transit_test_helpers import (
@@ -83,13 +85,16 @@ keywords = [
     keyword("a1"),
     keyword("b2"),
     keyword("c3"),
-    keyword("a_b")
+    keyword("a_b"),
 ]
 
-list_empty = None
-list_mixed = None
-list_nested = None
-list_simple = None
+list_empty = frozenlist([])
+list_mixed = frozenlist(
+    [0, 1, 2.0, True, False, "five", keyword("six"), symbol("seven"), "~eight", None]
+)
+list_simple = frozenlist([1, 2, 3])
+list_nested = frozenlist([list_simple, list_mixed])
+
 map_10_items = None
 map_10_nested = None
 map_1935_nested = None
@@ -155,10 +160,10 @@ exemplar_files = [
     ExemplarSpec("ints_interesting", ints_interesting),
     ExemplarSpec("ints_interesting_neg", ints_interesting_neg),
     ExemplarSpec("keywords", keywords),
-    # ExemplarSpec("list_empty", list_empty),
-    # ExemplarSpec("list_mixed", list_mixed),
-    # ExemplarSpec("list_nested", list_nested),
-    # ExemplarSpec("list_simple", list_simple),
+    ExemplarSpec("list_empty", list_empty),
+    ExemplarSpec("list_mixed", list_mixed),
+    ExemplarSpec("list_nested", list_nested),
+    ExemplarSpec("list_simple", list_simple),
     # ExemplarSpec("map_10_items", map_10_items),
     # ExemplarSpec("map_10_nested", map_10_nested),
     # ExemplarSpec("map_1935_nested", map_1935_nested),
@@ -215,6 +220,10 @@ exemplar_files = [
 ]
 
 reader = TransitReader()
+
+# exemplar_files = [
+#     ExemplarSpec("cmap_pathological", cmap_pathological),
+# ]
 
 
 @params(*exemplar_files)

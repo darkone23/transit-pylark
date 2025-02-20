@@ -1,4 +1,4 @@
-from .types import keyword, transit_tag, quoted, instant, frozenlist, frozendict
+from .types import keyword, transit_tag, quoted, instant, frozenlist, frozendict, symbol
 
 import lark
 
@@ -13,6 +13,22 @@ class KeywordDecoder(TransitDecoder):
 
     def decode(self, encoded: str):
         return keyword(encoded)
+
+
+class EscapeDecoder(TransitDecoder):
+
+    def __init__(self, token):
+        self.token = token
+
+    def decode(self, encoded: str):
+        return self.token + encoded
+
+
+class SymbolDecoder(TransitDecoder):
+
+    def decode(self, encoded: str):
+        return symbol(encoded)
+
 
 class IntDecoder(TransitDecoder):
 
@@ -44,6 +60,12 @@ class QuoteTagDecoder(TransitDecoder):
         return quoted(encoded)
 
 
+class ListDecoder(TransitDecoder):
+
+    def decode(self, xs):
+        return frozenlist(xs)
+
+
 class CompositeMapDecoder(TransitDecoder):
 
     def decode(self, encoded: list):
@@ -70,6 +92,7 @@ class TransitTagResolver:
         self.mapping[name] = serde
 
     def resolve(self, name: str, value):
+        # print("Time to resolve", name, value)
         if value is not None and type(value) is lark.Token:
             # print("making it a str!", type(value))
             value = str(value)
@@ -85,10 +108,15 @@ class TransitTagResolver:
         resolver = TransitTagResolver()
         # these names matching the lark grammar names
         resolver.add_decoder("keyword", KeywordDecoder())
+        resolver.add_decoder("escape_tilde", EscapeDecoder("~"))
+        resolver.add_decoder("escape_hat", EscapeDecoder("^"))
+        resolver.add_decoder("symbol", SymbolDecoder())
         resolver.add_decoder("tag", TagDecoder())
         resolver.add_decoder("microtime", MicroTimeDecoder())
         resolver.add_decoder("isotime", IsoTimeDecoder())
         resolver.add_decoder("int", IntDecoder())
+
         resolver.add_decoder("tag:'", QuoteTagDecoder())
         resolver.add_decoder("tag:cmap", CompositeMapDecoder())
+        resolver.add_decoder("tag:list", ListDecoder())
         return resolver

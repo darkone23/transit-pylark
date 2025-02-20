@@ -1,28 +1,13 @@
+import time
+
+from dataclasses import dataclass
+
+from .types import CacheHandle
+
+
 class TransitCacheControl:
     """
-    private static final int CACHE_CODE_DIGITS = 44;
-    private static final int BASE_CHAR_INDEX = 48;
-    private static final String SUB_STR = "^";
-
-    private String indexToCode(int index) {
-        int hi = index / CACHE_CODE_DIGITS;
-        int lo = index % CACHE_CODE_DIGITS;
-        if (hi == 0) {
-            return SUB_STR + (char)(lo + BASE_CHAR_INDEX);
-        } else {
-            return SUB_STR + (char)(hi + BASE_CHAR_INDEX) + (char)(lo + BASE_CHAR_INDEX);
-        }
-    }
-
-    private int codeToIndex(String s) {
-        int sz = s.length();
-        if (sz == 2) {
-            return ((int)s.charAt(1) - WriteCache.BASE_CHAR_INDEX);
-        } else {
-            return (((int)s.charAt(1) - WriteCache.BASE_CHAR_INDEX) * WriteCache.CACHE_CODE_DIGITS) +
-                    ((int)s.charAt(2) - WriteCache.BASE_CHAR_INDEX);
-        }
-    }
+    implementation of the reader cache logic for transit format
     """
 
     CACHE_CODE_DIGITS = 44
@@ -30,9 +15,13 @@ class TransitCacheControl:
     SUB_STR = "^"
     MAX_CACHE_SIZE = CACHE_CODE_DIGITS * CACHE_CODE_DIGITS
 
+    CACHE_MAP_TOKEN = "^ "
+    CACHE_TOKEN = "CACHECODE:^"
+
     def __init__(self):
         self.reset()
         self.cache_enabled = True
+        self.__cache = {}
 
     def set_cache_enabled(self, enable: bool):
         # print("Setting cache enforce to:", enforce)
@@ -40,28 +29,67 @@ class TransitCacheControl:
 
     def reset(self):
         # print("Initializing fresh cache stack")
-        self.cache = {}
+        # self.cache = {}
         self.cursor = 0
 
-    def ack_cache_control(self, item: list):
-        # print("thanks for popping", self.cursor, len(self.cache), item)
+    def get_cached_item(self, token):
+        """trade in a cache token for a cache entry"""
+        round = TransitCacheControl.code_to_index(token)
+        popped = self.__cache[round]
+        # print("popped!", popped)
+        return popped
+
+    def ack_cache_control(self, item: CacheHandle, res):
         if self.cache_enabled:
-            cursor = self.cache[item]
-            del self.cache[item]
-            return cursor
+            # print("thanks for popping", self.cursor, len(self.cache), item, self.cache.keys())
+            # cursor = self.cache[item]
+            # del self.cache[item]
+            self.__cache[item.cursor] = res
 
     def syn_cache_control(self, item):
         """We need to grab our ID as soon as we see the cacheable token - not AFTER parsing the token!"""
         if self.cache_enabled:
             if self.cursor > TransitCacheControl.MAX_CACHE_SIZE:
                 self.reset()
-                print(
-                    "Resetting the cache due to overflow: you probably want to disable the cache."
-                )
             # print("thanks for adding", self.cursor, len(self.cache), item)
-            self.cache[item] = self.cursor
+
+            # TODO: we might not always want to hand out a cache handle
+            # like if item is a very tiny 1 char object?
+
+            handle = CacheHandle(
+                cursor=self.cursor,
+                item=item,
+            )
+            # self.cache[handle] = self.cursor
             self.cursor += 1
+            return handle
+        else:
+            return item
             # print(self.control_stack)
+
+    def __cache_analysis(self, value):
+        v_type = type(value)
+        res = dict(should_cache=False, v_type=v_type, cache_token=None)
+        # print("running cache analysis", v_type, value)
+        if v_type is str:
+            v_size = len(value)
+            if value == self.CACHE_MAP_TOKEN:
+                res["v_type"] = "map-token"
+                return res
+            # else:
+            # res["should_cache"] = v_size > 3
+            # from transit spec:
+        elif v_type is mapkey:
+            # Strings more than 3 characters long are also cached when they are used as keys in maps whose keys are all "stringable"
+            # pass
+            # print("wow a mapkey!", value)
+            v_size = len(value)
+            res["should_cache"] = v_size > 3
+        elif v_type is keyword or v_type is symbol:
+            v_size = len(value)
+            res["should_cache"] = v_size > 1
+
+        return res
 
     @staticmethod
     def index_to_code(index: int) -> str:

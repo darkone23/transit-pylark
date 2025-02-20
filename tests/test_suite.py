@@ -60,6 +60,9 @@ class TransitTestSuite(unittest.TestCase):
 
         verbose_files = ["./tests/test_data/example.verbose.json"]
 
+        # uncomment below line to disable this test
+        # verbose_files = []
+
         reader = TransitReader()
 
         for f in verbose_files:

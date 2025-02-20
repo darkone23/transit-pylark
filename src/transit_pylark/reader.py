@@ -7,8 +7,17 @@ from lark import Lark, Transformer, Discard, Tree
 
 import time
 
-from .cache import TransitCacheControl
-from .types import frozendict, frozenlist, instant, transit_tag, mapkey, keyword, quoted
+from .cache import TransitCacheControl, CacheHandle
+from .types import (
+    frozendict,
+    frozenlist,
+    instant,
+    transit_tag,
+    mapkey,
+    keyword,
+    quoted,
+    symbol,
+)
 from .codecs import TransitTagResolver, TransitDecoder
 
 # basic json grammar needs to be extended to handle transit tagging and caching
@@ -83,15 +92,13 @@ class TransitScalarTransformer(Transformer):
             # print("one args???")
             # print("you asked me to resolve a one arg mystery", v)
             res = self.resolver.resolve(k)
-            self.control.syn_cache_control(res)
-            return res
+            return self.control.syn_cache_control(res)
         elif arg_size == 2:
             (k, v) = args
             # print("two args???", k, v)
             # print("you asked me to resolve a mystery", k, v)
             res = self.resolver.resolve(k, v)
-            self.control.syn_cache_control(res)
-            return res
+            return self.control.syn_cache_control(res)
         else:
             raise ValueError(f"Unexpected transit str parser len... {len(args)}")
 
@@ -132,55 +139,23 @@ class TransitJsonTransformer(Transformer):
                 resolver=resolver, control=self.control
             ),
         )
-        self.__cache = {}
 
     def value(self, args):
         (s,) = args
         # print("value inspect:", s)
+        result = s
         if self.control.cache_enabled:
-            cache_analysis = self.__cache_analysis(s)
+            # cache_analysis = self.__cache_analysis(s)
             # print("do I think this is cacheable?", cache_analysis)
-            if cache_analysis.get("should_cache", False):
-                self.__commit_to_cache(s, s)
-            else:
-                # print("I don't think I should cache:", s)
-                pass
-            if cache_analysis.get("cache_token"):
-                token = cache_analysis["cache_token"]
-                round = TransitCacheControl.code_to_index(token)
-                popped = self.__cache[round]
-                # print("popped!", popped)
-                return popped
-        return s
-
-    def __cache_analysis(self, value):
-        v_type = type(value)
-        res = dict(should_cache=False, v_type=v_type, cache_token=None)
-        if v_type is int or v_type is float:
-            return res
-        if v_type is str:
-            v_size = len(value)
-            if value == self.CACHE_MAP_TOKEN:
-                res["v_type"] = "map-token"
-                return res
-            elif value.startswith(self.CACHE_TOKEN):
-                res["cache_token"] = value[10:]
-            # else:
-            # res["should_cache"] = v_size > 3
-            # from transit spec:
-        elif v_type is mapkey:
-            # Strings more than 3 characters long are also cached when they are used as keys in maps whose keys are all "stringable"
-            # pass
-            # print("wow a mapkey!", value)
-            v_size = len(value)
-            res["should_cache"] = v_size > 3
-        elif v_type is keyword:
-            v_size = len(value)
-            res["should_cache"] = v_size > 1
-
-        # TODO: symbols, tags
-
-        return res
+            if type(s) is CacheHandle:
+                # cache_analysis.get("should_cache", False):
+                # print("cache handle and committing", s)
+                result = self.__commit_to_cache(s, s.item)
+            if type(s) is str and s.startswith(self.CACHE_TOKEN):
+                token = s[10:]
+                result = self.control.get_cached_item(token)
+        # print("result inspect:", result)
+        return result
 
     def transit_num(self, args):
         (n,) = args
@@ -208,7 +183,7 @@ class TransitJsonTransformer(Transformer):
             return []
         if len(args) == 1:
             (s,) = args
-            # print("list of one", s)
+            # print("list of one", args, s)
             return [s]
         else:
             head = args[0]
@@ -231,16 +206,8 @@ class TransitJsonTransformer(Transformer):
             res[mapkey(k)] = v
         return res
 
-    def __transit_tagged_dict(self, xs):
-        assert len(xs) == 1, "I don't know what to do with more than 2 entries"
-        (k, v) = next(iter(xs.items()))
-        tag_key = transit_tag.tag_key(k.k.tag)
-        res = self.resolver.resolve(tag_key, v)
-        self.__commit_to_cache(k.k, res)
-        return res
-
     def __emit_dict(self, xs):
-        if len(xs) and type(next(iter(xs.keys())).k) is transit_tag:
+        if len(xs) and transit_tag.is_transit_tag(next(iter(xs.keys())).k):
             return self.__transit_tagged_dict(xs)
         obj = {}
         for k, v in xs.items():
@@ -251,6 +218,7 @@ class TransitJsonTransformer(Transformer):
         return frozendict(obj)
 
     def dict(self, args):
+        # print("I think I am a dict before a value...", args)
         xs = self.__dict(args)
         return self.__emit_dict(xs)
 
@@ -259,23 +227,42 @@ class TransitJsonTransformer(Transformer):
         # # round = TransitCacheControl.code_to_index(code)
         # print("Adding to cache", res, self.control.control_stack)
         if self.control.cache_enabled:
-            offset = self.control.ack_cache_control(key)
-            self.__cache[offset] = res
+            # print("At this time I am saving to the cache:", key, res)
+            self.control.ack_cache_control(key, res)
+        return res
 
     def __transit_tagged_list(self, xs):
         assert len(xs) == 2, "I don't know what to do with more than 2 entries"
         (k, v) = xs
-        tag_key = transit_tag.tag_key(k.tag)
+        # print("dealing with transit tag list", type(k), k, v)
+        tag_key = transit_tag.tag_key(k)
         res = self.resolver.resolve(tag_key, v)
-        self.__commit_to_cache(k, res)
-        return res
+        if type(k) is CacheHandle:
+            return self.__commit_to_cache(k, res)
+        else:
+            return res
+
+    def __transit_tagged_dict(self, xs):
+        assert len(xs) == 1, "I don't know what to do with more than 2 entries"
+        (k, v) = next(iter(xs.items()))
+        if type(k) is mapkey:
+            k = k.k
+        # print("dealing with transit tag dict", type(k), k, v)
+        tag_key = transit_tag.tag_key(k)
+        res = self.resolver.resolve(tag_key, v)
+        if type(k) is CacheHandle:
+            return self.__commit_to_cache(k, res)
+        else:
+            return res
 
     def list(self, args):
+        if args == [None]:
+            return frozenlist([])
         xs = self.__list(args)
-        # print("dealing with a list", xs)
+        # print("dealing with a list", xs, args, type(args))
         if type(xs) is dict:
             return self.__emit_dict(xs)
-        elif len(xs) and type(xs[0]) is transit_tag:
+        elif len(xs) and transit_tag.is_transit_tag(xs[0]):
             # print("it is a transit list", xs)
             return self.__transit_tagged_list(xs)
         # print("about to make my result list:", xs)
@@ -304,6 +291,11 @@ class TransitJsonTransformer(Transformer):
                 result = self.CACHE_TOKEN + remainder
         else:
             result = transit_part
+
+        if type(result) is CacheHandle:
+            if not transit_tag.is_transit_tag(result.item):
+                result = self.__commit_to_cache(result, result.item)
+        # print("result of transit str", result)
         return result
 
 
